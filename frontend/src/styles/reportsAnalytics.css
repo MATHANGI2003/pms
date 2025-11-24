@@ -1,0 +1,149 @@
+/* -----------------------------
+   PAGE CONTAINER
+--------------------------------*/
+.reports-container {
+  padding: 25px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.page-title {
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+
+/* -----------------------------
+   SUMMARY CARDS
+--------------------------------*/
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 30px;
+}
+
+.summary-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+
+}
+
+.summary-card h4 {
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: #444;
+}
+
+.summary-card p {
+  font-size: 24px;
+  font-weight: bold;
+  color: #000;
+}
+
+
+/* -----------------------------
+   TABLE SECTION
+--------------------------------*/
+.table-section {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.table-section h3 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.analytics-table thead {
+  background:  #4634eb;
+  color: #fff;
+}
+
+.analytics-table th,
+.analytics-table td {
+  padding: 12px 10px;
+  border: 1px solid #ddd;
+  text-align: center;
+  font-size: 14px;
+}
+
+.analytics-table tbody tr:nth-child(even) {
+  background: #f8f8f8;
+}
+
+.analytics-table tbody tr:hover {
+  background: #f1f1f1;
+}
+
+
+/* -----------------------------
+   PDF BUTTON
+--------------------------------*/
+.pdf-btn {
+  background:  #4634eb;
+  color: #fff;
+  padding: 6px 12px;
+  border: none;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.pdf-btn:hover {
+  background: lightblue;
+}
+
+
+/* -----------------------------
+   CHART SECTION
+--------------------------------*/
+.chart-section {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  margin-bottom: 40px;
+}
+
+.chart-section h3 {
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: #4634eb;
+}
+
+
+/* -----------------------------
+   RESPONSIVE FIXES
+--------------------------------*/
+@media (max-width: 768px) {
+  .analytics-table th,
+  .analytics-table td {
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pdf-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+}
