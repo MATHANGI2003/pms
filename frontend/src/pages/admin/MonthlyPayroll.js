@@ -78,6 +78,7 @@ const MonthlyPayroll = () => {
     const { bonus, deductions, netPay } = calcNetPay(salary);
 
     const doc = new jsPDF();
+    doc.addImage("/images/ceitcs-logo.png", "PNG", 140, 9, 28, 36);
     doc.text("CeiTCS Pvt Ltd.", 15, 15);
     doc.text("Payslip", 15, 25);
 
