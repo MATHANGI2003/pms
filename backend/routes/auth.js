@@ -10,21 +10,6 @@ dotenv.config();
 const router = express.Router();
 
 /** 📌 Register Admin */
-router.post("/register", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: "Email already registered" });
-
-    const hashed = await bcrypt.hash(password, 10);
-    await User.create({ email, password: hashed });
-
-    res.json({ message: "Admin registered successfully" });
-  } catch (err) {
-    console.error("Register error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 /** 📌 Admin Login */
 router.post("/login", async (req, res) => {
