@@ -24,7 +24,7 @@ import OnsiteEmployees from "./pages/admin/OnsiteEmployees";
 import AttendancePage from "./pages/admin/AttendancePage";
 
 import ReportsAnalytics from "./pages/admin/ReportsAnalytics";
-import Settings from "./pages/admin/Settings";
+
 
 function App() {
   const [role, setRole] = useState(localStorage.getItem("role"));
@@ -69,7 +69,7 @@ function App() {
         <Route path="monthly-payroll" element={<MonthlyPayroll />} />
         <Route path="onsite" element={<OnsiteEmployees />} />
         <Route path="reports-analytics" element={<ReportsAnalytics />} />
-        <Route path="settings" element={<Settings />} />
+        
       </Route>
 
       {/* EMPLOYEE PROTECTED ROUTE */}
