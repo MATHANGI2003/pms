@@ -111,7 +111,7 @@ const ReportsAnalytics = () => {
   // UPDATED PDF — ALL FIELDS INCLUDED
   const generatePDF = (emp) => {
     const doc = new jsPDF("p", "mm", "a4");
-
+    doc.addImage("/images/ceitcs-logo.png", "PNG", 140, 13, 28, 34);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
     doc.text("CeiTCS Pvt. Ltd.", 14, 20);
