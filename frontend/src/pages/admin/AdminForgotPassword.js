@@ -2,26 +2,44 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "../../styles/login.css";
 
+const ADMIN_EMAIL = "payrollmanagementsystem123@gmail.com";
+
 const AdminForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleReset = async (e) => {
     e.preventDefault();
+    setMessage("");
+
+    // ✅ EMAIL RESTRICTION
+    if (email.trim().toLowerCase() !== ADMIN_EMAIL) {
+      setMessage("❌ Only authorized admin email is allowed.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const res = await fetch("http://localhost:5000/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: ADMIN_EMAIL }),
       });
 
       const data = await res.json();
-      if (data.success) setMessage("✅ Reset link sent to your email.");
-      else setMessage("⚠ Error sending reset link. Please try again.");
+
+      if (res.ok && data.success) {
+        setMessage("✅ Reset link sent. Please check your email.");
+      } else {
+        setMessage(data.message || "⚠ Error sending reset link.");
+      }
     } catch (err) {
-      console.error("Error:", err);
-      setMessage("⚠ Server error. Try again later.");
+      console.error("Forgot password error:", err);
+      setMessage("⚠ Server error. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -34,15 +52,19 @@ const AdminForgotPassword = () => {
         <form onSubmit={handleReset}>
           <input
             type="email"
-            placeholder="Enter your email"
+            className="login-input"
+            placeholder="Enter admin email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <button type="submit" className="btn-login">Send Reset Link</button>
+
+          <button type="submit" className="btn-login" disabled={loading}>
+            {loading ? "Sending..." : "Send Reset Link"}
+          </button>
         </form>
 
-        {message && <p>{message}</p>}
+        {message && <p className="login-message">{message}</p>}
 
         <Link to="/login/admin">Back to Login</Link>
       </div>

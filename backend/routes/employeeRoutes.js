@@ -32,8 +32,21 @@ router.get("/generate-id", async (req, res) => {
 ----------------------------------------------*/
 router.get("/", async (req, res) => {
   try {
-    const employees = await Employee.find().sort({ createdAt: -1 });
+    const employees = await Employee.find();
     res.json({ success: true, employees });
+  } catch {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+/* ---------------------------------------------
+   GET EMPLOYEE BY USERNAME
+----------------------------------------------*/
+router.get("/username/:username", async (req, res) => {
+  try {
+    const employee = await Employee.findOne({ username: req.params.username });
+    if (!employee) return res.status(404).json({ success: false, message: "Employee not found" });
+    res.json({ success: true, employee });
   } catch {
     res.status(500).json({ success: false, message: "Server error" });
   }

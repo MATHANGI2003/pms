@@ -167,13 +167,15 @@
 .remove-btn:hover {
   background-color: #d9363e;
 }
+
 /* world map container tweaks */
 .world-map-wrapper {
   background: #fff;
   border-radius: 10px;
   padding: 12px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
 }
+
 .table-heading {
   font-size: 18px;
   font-weight: 600;
@@ -196,6 +198,7 @@
 .highlight-row:hover {
   background-color: #d4d4ff !important;
 }
+
 .map-section {
   background: #fff;
   border-radius: 12px;

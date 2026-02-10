@@ -2,7 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import SidebarEmp from "../components/SidebarEmp";
 import Navbar from "../components/Navbar";
-import "../styles/layout.css";
+import "../styles/empSidebarPremium.css";
 
 const EmpLayout = () => {
   return (

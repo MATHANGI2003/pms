@@ -45,7 +45,7 @@ const EmployeeForgotPassword = () => {
         </form>
         {message && <p>{message}</p>}
         <div className="login-links">
-          <Link to="/login">Back to Login</Link>
+          <Link to="/login/employee">Back to Login</Link>
         </div>
       </div>
     </div>

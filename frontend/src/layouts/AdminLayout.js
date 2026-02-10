@@ -1,5 +1,6 @@
 import React from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import Swal from "sweetalert2";
 import "../styles/sidebar.css";
 import {
   FaTachometerAlt,
@@ -20,6 +21,25 @@ const AdminLayout = ({ onLogout }) => {
   const getActiveClass = (path) =>
     location.pathname.startsWith(path) ? "active" : "";
 
+  // ✅ Logout with confirmation popup
+  const handleLogout = () => {
+    Swal.fire({
+      title: "Logout Confirmation",
+      text: "Are you sure you want to logout?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Logout",
+      cancelButtonText: "Cancel",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        if (onLogout) onLogout();
+        navigate("/login/admin");
+      }
+    });
+  };
+
   return (
     <div className="admin-layout">
       <aside className="sidebar">
@@ -31,55 +51,57 @@ const AdminLayout = ({ onLogout }) => {
               className={getActiveClass("/admin/dashboard")}
               onClick={() => navigate("/admin/dashboard")}
             >
-              <FaTachometerAlt /> Dashboard
+              <FaTachometerAlt /> <span>Dashboard</span>
             </li>
 
             <li
               className={getActiveClass("/admin/employees")}
               onClick={() => navigate("/admin/employees")}
             >
-              <FaUsers /> Employees
+              <FaUsers /> <span>Employees</span>
             </li>
 
-            <li
+          {/* <li
               className={getActiveClass("/admin/attendance")}
               onClick={() => navigate("/admin/attendance")}
             >
-              <FaChartLine /> Attendance
-            </li>
+              <FaChartLine /> <span>Attendance</span>
+            </li> */}
 
             <li
               className={getActiveClass("/admin/monthly-payroll")}
               onClick={() => navigate("/admin/monthly-payroll")}
             >
-              <FaMoneyBillWave /> Payroll
+              <FaMoneyBillWave /> <span>Payroll</span>
             </li>
 
             <li
               className={getActiveClass("/admin/onsite")}
               onClick={() => navigate("/admin/onsite")}
             >
-              <FaBell /> Onsite Employees
+              <FaBell /> <span>Onsite</span>
             </li>
 
             <li
               className={getActiveClass("/admin/reports-analytics")}
               onClick={() => navigate("/admin/reports-analytics")}
             >
-              <FaUserCog /> Reports
+              <FaUserCog /> <span>Reports</span>
             </li>
 
-          
+
           </ul>
         </nav>
 
-        <button className="logout-btn" onClick={onLogout}>
-          <FaSignOutAlt /> Logout
+        <button className="logout-btn" onClick={handleLogout}>
+          <FaSignOutAlt /> <span>Logout</span>
         </button>
       </aside>
 
       <main className="admin-main">
-        <Outlet />
+        <div className="admin-content-inner">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

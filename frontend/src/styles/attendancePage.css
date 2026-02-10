@@ -53,12 +53,15 @@
 .summary-card.total {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
+
 .summary-card.present {
   background: linear-gradient(135deg, #16a34a, #22c55e);
 }
+
 .summary-card.absent {
   background: linear-gradient(135deg, #ef4444, #dc2626);
 }
+
 .summary-card.leave {
   background: linear-gradient(135deg, #f59e0b, #d97706);
 }
@@ -123,53 +126,128 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-/* ===== Table (Restored Original Design) ===== */
+/* ===== Table Wrapper ===== */
 .table-wrapper {
   overflow-x: auto;
   margin-top: 20px;
-  border-radius: 12px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  padding: 8px;
 }
 
+/* ===== Attendance Table ===== */
 .attendance-table {
   width: 100%;
-  border-collapse: collapse;
-  background: white;
+  border-collapse: separate;
+  border-spacing: 0;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.attendance-table th,
-.attendance-table td {
-  padding: 14px;
-  text-align: left;
-  border-bottom: 1px solid #e5e7eb;
-  color: #111827;
+  font-family: "Poppins", sans-serif;
   font-size: 0.95rem;
+  color: #1f2937;
 }
 
 .attendance-table th {
-  background: #2563eb;
+  background: linear-gradient(135deg, #4b7bec, #5e60ce);
   color: white;
   font-weight: 600;
+  text-align: left;
+  padding: 14px 16px;
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
+  letter-spacing: 0.5px;
 }
 
-.attendance-table tr:nth-child(even) {
+.attendance-table td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.attendance-table tr:nth-child(even) td {
   background-color: #f9fafb;
 }
 
-.attendance-table tr:hover {
+.attendance-table tr:hover td {
   background-color: #f3f4f6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
+/* ===== Status Badges ===== */
+.status-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.status-badge.present {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.status-badge.absent {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.status-badge.late {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.leave {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* ===== No Data ===== */
 .no-data {
   text-align: center;
   color: #6b7280;
-  padding: 20px;
+  padding: 24px;
   font-style: italic;
+  font-size: 0.95rem;
+}
+
+/* ===== Inputs in Table ===== */
+.attendance-table select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.attendance-table select:hover {
+  transform: scale(1.02);
+}
+
+/* ===== Scrollbar Styling ===== */
+.table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f0f4f8;
+  border-radius: 10px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* ===== Save Button ===== */
@@ -192,41 +270,4 @@
 .save-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 4px 10px rgba(29, 78, 216, 0.3);
-}
-/* ===== Colored Select for Attendance Status ===== */
-.status-select {
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-weight: 600;
-  border: 1px solid #ccc;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.status-select.present {
-  background: #d1fae5;
-  color: #047857;
-  border-color: #10b981;
-}
-
-.status-select.absent {
-  background: #fee2e2;
-  color: #b91c1c;
-  border-color: #ef4444;
-}
-
-.status-select.late {
-  background: #fef3c7;
-  color: #92400e;
-  border-color: #f59e0b;
-}
-
-.status-select.leave {
-  background: #dbeafe;
-  color: #1e40af;
-  border-color: #3b82f6;
-}
-
-.status-select:hover {
-  transform: scale(1.02);
 }

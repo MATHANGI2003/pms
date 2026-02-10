@@ -5,213 +5,323 @@ import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
+import multer from "multer";
+import path from "path";
+import { fileURLToPath } from "url";
+
 import Admin from "./models/Admin.js";
 import Employee from "./models/Employee.js";
 import Department from "./models/Department.js";
 import MonthlyPayroll from "./models/MonthlyPayroll.js";
 import OnsiteEmployee from "./models/OnsiteEmployee.js";
+import Leave from "./models/Leave.js";
+
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
-//import activityRoutes from "./routes/activityRoutes.js";
-import notificationRoutes from "./routes/notificationRoutes.js";
+//import notificationRoutes from "./routes/notificationRoutes.js";
 
 dotenv.config();
 const app = express();
-//app.use("/api/activity", activityRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-    credentials: true,
-  })
-);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })); 
-app.use("/employees", employeeRoutes);
-app.use("/api/attendance",attendanceRoutes)
 
-// ✅ MongoDB connection
+/* -------------------- MIDDLEWARE -------------------- */
+
+
+app.use(cors({
+  origin: ["http://localhost:3000", "http://localhost:3001"],
+  credentials: true
+}));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static("uploads"));
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/* -------------------- MULTER CONFIG -------------------- */
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+const upload = multer({ storage });
+
+app.use("/employees", employeeRoutes);
+app.use("/attendance", attendanceRoutes);
+//app.use("/api/notifications", notificationRoutes);
+
+/* -------------------- DB CONNECT -------------------- */
 mongoose
   .connect(process.env.MONGO_URI, { dbName: "PayrollManagementSystem" })
   .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .catch((err) => console.error("❌ Mongo error:", err));
+  
 
-/* ---------------------- LOGIN HISTORY SCHEMAS ---------------------- */
-const adminLoginSchema = new mongoose.Schema({
+/* -------------------- LOGIN HISTORY -------------------- */
+const loginSchema = new mongoose.Schema({
   username: String,
   email: String,
   loginTime: { type: Date, default: Date.now },
 });
-const AdminLogin = mongoose.model("AdminLogin", adminLoginSchema);
 
-const employeeLoginSchema = new mongoose.Schema({
-  username: String,
-  email: String,
-  loginTime: { type: Date, default: Date.now },
-});
-const EmployeeLogin = mongoose.model("EmployeeLogin", employeeLoginSchema);
+const AdminLogin = mongoose.model("AdminLogin", loginSchema);
+const EmployeeLogin = mongoose.model("EmployeeLogin", loginSchema);
+const isValidPassword = (password) => {
+  return /^(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{8,}$/.test(password);
+};
 
-/* ----------------------------- RESET TOKENS ----------------------------- */
+
+/* -------------------- RESET TOKEN STORE -------------------- */
 const resetTokens = new Map();
 
-/* --------------------------- ADMIN SECTION --------------------------- */
 
-// Forgot password (Admin)
+
+/* ---------- ADMIN FORGOT PASSWORD ---------- */
 app.post("/forgot-password", async (req, res) => {
-  const { email } = req.body;
-  console.log("📩 Forgot Password Request:", email);
-
   try {
+    // 🔒 FIXED ADMIN EMAIL
+    const ADMIN_EMAIL = "payrollmanagementsystem123@gmail.com";
+
     let admin = await Admin.findOne({ username: "admin" });
 
     if (!admin) {
       admin = await Admin.create({
         username: "admin",
-        email,
+        email: ADMIN_EMAIL,
         password: await bcrypt.hash("admin123", 10),
         role: "admin",
       });
     }
 
-    const token = crypto.randomBytes(20).toString("hex");
-    resetTokens.set(token, { username: "admin", email, role: "admin", createdAt: Date.now() });
+    // ✅ Always sync admin email to fixed one
+    if (admin.email !== ADMIN_EMAIL) {
+      admin.email = ADMIN_EMAIL;
+      await admin.save();
+    }
 
-    const resetLink = `http://localhost:3000/admin/reset-password/${token}`;
+    const token = crypto.randomBytes(32).toString("hex");
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      tls: { rejectUnauthorized: false },
+    resetTokens.set(token, {
+      role: "admin",
+      email: ADMIN_EMAIL,
+      createdAt: Date.now(),
     });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Password Reset Request - CeiTCS Payroll (Admin)",
-      html: `
-        <h2>Reset Your Admin Password</h2>
-        <p>Click below to reset your password:</p>
-        <a href="${resetLink}">${resetLink}</a>
-        <p><small>This link expires in 1 hour.</small></p>
-      `,
+    const resetLink = `http://localhost:3000/reset-password/admin/${token}`;
+
+    // 📧 SEND MAIL ONLY TO FIXED ADMIN EMAIL
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        tls: { rejectUnauthorized: false },
+      });
+
+      await transporter.sendMail({
+        from: `"CeiTCS Payroll" <${process.env.EMAIL_USER}>`,
+        to: ADMIN_EMAIL, // ✅ FIXED
+        subject: "Admin Password Reset - CeiTCS Payroll",
+        html: `
+          <h3>Admin Password Reset</h3>
+          <p>Click below to reset your password:</p>
+          <a href="${resetLink}" target="_blank">${resetLink}</a>
+          <p>This link is valid for a short time.</p>
+        `,
+      });
+    }
+
+    console.log("🔑 ADMIN RESET LINK:", resetLink);
+
+    return res.json({
+      success: true,
+      message: "Reset link sent to admin email",
     });
 
-    res.json({ success: true, message: "Reset link sent to your email." });
-  } catch (error) {
-    console.error("❌ Error sending reset link:", error);
-    res.status(500).json({ success: false, message: "Error sending reset link." });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 });
 
-// Reset password (admin + employee)
+
+/* ---------- RESET PASSWORD (ADMIN + EMPLOYEE) ---------- */
 app.post("/reset-password/:token", async (req, res) => {
-  try {
-    const { token } = req.params;
-    const { password } = req.body;
-    const tokenData = resetTokens.get(token);
+  const { password } = req.body;
 
-    if (!tokenData)
-      return res.status(400).json({ success: false, message: "Invalid or expired token" });
-
-    const { username, email, role, createdAt } = tokenData;
-
-    if (Date.now() - createdAt > 3600000) {
-      resetTokens.delete(token);
-      return res.status(400).json({ success: false, message: "Token expired" });
-    }
-
-    const hashed = await bcrypt.hash(password, 10);
-
-    if (role === "admin") {
-      let admin = await Admin.findOne({ username });
-      if (!admin) {
-        admin = await Admin.create({ username, email, password: hashed, role: "admin" });
-      } else {
-        admin.password = hashed;
-        if (email) admin.email = email;
-        await admin.save();
-      }
-    } else if (role === "employee") {
-      let employee = await Employee.findOne({ email });
-      if (!employee) {
-        employee = await Employee.create({ username, email, password: hashed, role: "employee" });
-      } else {
-        employee.password = hashed;
-        await employee.save();
-      }
-    }
-
-    resetTokens.delete(token);
-    res.json({ success: true, message: "Password reset successful!" });
-  } catch (error) {
-    console.error("❌ Error in reset-password route:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+  if (!isValidPassword(password)) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Password must be at least 8 characters and include a number and a special character",
+    });
   }
+
+  const tokenData = resetTokens.get(req.params.token);
+  if (!tokenData)
+    return res.status(400).json({ success: false, message: "Invalid token" });
+
+  if (Date.now() - tokenData.createdAt > 3600000) {
+    resetTokens.delete(req.params.token);
+    return res.status(400).json({ success: false, message: "Token expired" });
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+
+  if (tokenData.role === "admin") {
+    await Admin.updateOne({ username: "admin" }, { password: hashed });
+  } else {
+    await Employee.updateOne({ email: tokenData.email }, { password: hashed });
+  }
+
+  resetTokens.delete(req.params.token);
+  res.json({ success: true, message: "Password reset successful" });
 });
 
-// ✅ Admin login
+// ✅ Employee Reset Password Route (alias)
+app.post("/employee/reset-password/:token", async (req, res) => {
+  const { password } = req.body;
+
+  if (!isValidPassword(password)) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Password must be at least 8 characters and include a number and a special character",
+    });
+  }
+
+  const tokenData = resetTokens.get(req.params.token);
+  if (!tokenData)
+    return res.status(400).json({ success: false, message: "Invalid token" });
+
+  if (Date.now() - tokenData.createdAt > 3600000) {
+    resetTokens.delete(req.params.token);
+    return res.status(400).json({ success: false, message: "Token expired" });
+  }
+
+  if (tokenData.role !== "employee") {
+    return res.status(403).json({ success: false, message: "Unauthorized" });
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+  await Employee.updateOne({ email: tokenData.email }, { password: hashed });
+
+  resetTokens.delete(req.params.token);
+  res.json({ success: true, message: "Password reset successful" });
+});
+
+
+/* ---------- ✅ FIXED ADMIN LOGIN ---------- */
+
 app.post("/admin/login", async (req, res) => {
   try {
-    const { username, password, email } = req.body;
-    if (username !== "admin")
-      return res.status(400).json({ success: false, message: "Invalid username" });
+    const { password } = req.body;
 
+    // Always fetch single admin
     let admin = await Admin.findOne({ username: "admin" });
 
+    // If admin not exists, create default admin
     if (!admin) {
       const hashed = await bcrypt.hash("admin123", 10);
-      admin = new Admin({ username: "admin", email: email || "", password: hashed, role: "admin" });
-      await admin.save();
-      console.log("✅ Default admin created with password admin123");
+      admin = await Admin.create({
+        username: "admin",
+        email: "payrollmanagementsystem123@gmail.com",
+        password: hashed,
+        role: "admin",
+      });
     }
 
+    // ✔ Check reset password OR default password
     const passwordMatches = await bcrypt.compare(password, admin.password);
     const isDefaultPassword = password === "admin123";
 
-    if (!passwordMatches && !isDefaultPassword)
-      return res.status(400).json({ success: false, message: "Invalid password" });
-
-    if (email && email !== admin.email) {
-      admin.email = email;
-      await admin.save();
+    if (!passwordMatches && !isDefaultPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid password",
+      });
     }
 
-    const loginRecord = new AdminLogin({ username: admin.username, email: admin.email });
-    await loginRecord.save();
-
-    const previousLogins = await AdminLogin.find().sort({ loginTime: -1 }).limit(10).lean();
+    // Save login history
+    await AdminLogin.create({
+      username: admin.username,
+      email: admin.email,
+    });
 
     res.json({
       success: true,
       message: "Admin login successful",
       redirect: "/admin/dashboard",
-      previousLogins,
     });
+
   } catch (error) {
     console.error("❌ Admin login error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-/* --------------------------- EMPLOYEE SECTION --------------------------- */
+/* ============================================================
+   ======================= EMPLOYEE ============================
+   ============================================================ */
 
-// Forgot password (employee)
-app.post("/employee/forgot-password", async (req, res) => {
-  const { email } = req.body;
-  console.log("📩 Employee Forgot Password Request:", email);
+app.post("/employee/login", async (req, res) => {
+  const { username, email, password } = req.body;
 
   try {
-    let employee = await Employee.findOne({ email });
+    // Find employee by username OR email
+    const employee = await Employee.findOne({
+      $or: [{ username: username || email }, { email: email || username }]
+    });
+
+    if (!employee)
+      return res.status(400).json({ success: false, message: "User not found" });
+
+    const isMatch = await bcrypt.compare(password, employee.password);
+    if (!isMatch)
+      return res.status(400).json({ success: false, message: "Invalid password" });
+
+    // Save login history
+    await EmployeeLogin.create({
+      username: employee.username,
+      email: employee.email
+    });
+
+    const fullName = employee.name || employee.username;
+
+    res.json({
+      success: true,
+      message: "Employee login successful",
+      role: "employee",
+      username: employee.username,
+      fullName: fullName,
+      redirect: "/employee",
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+/* ---------- EMPLOYEE FORGOT PASSWORD ---------- */
+app.post("/employee/forgot-password", async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const employee = await Employee.findOne({ email });
+
     if (!employee) {
-      employee = await Employee.create({
-        username: email.split("@")[0],
-        email,
-        password: await bcrypt.hash("emp123", 10),
-        role: "employee",
-      });
+      return res.status(400).json({ success: false, message: "Email not found in records" });
     }
 
-    const token = crypto.randomBytes(20).toString("hex");
+    const token = crypto.randomBytes(32).toString("hex");
     resetTokens.set(token, {
       username: employee.username,
       email,
@@ -221,78 +331,187 @@ app.post("/employee/forgot-password", async (req, res) => {
 
     const resetLink = `http://localhost:3000/employee/reset-password/${token}`;
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      tls: { rejectUnauthorized: false },
-    });
+    // Try to send email, but don't fail if email config is missing
+    try {
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+          tls: {
+            rejectUnauthorized: false, // Fix for self-signed certificate error
+          },
+        });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Password Reset Request - CeiTCS Payroll (Employee)",
-      html: `
-        <h2>Reset Your Employee Password</h2>
-        <p>Click below to reset your password:</p>
-        <a href="${resetLink}">${resetLink}</a>
-        <p><small>This link expires in 1 hour.</small></p>
-      `,
-    });
+        await transporter.sendMail({
+          to: email,
+          from: process.env.EMAIL_USER,
+          subject: "Employee Password Reset - CeiTCS Payroll",
+          html: `<p>Hello ${employee.name || employee.username},</p>
+                 <p>Click the link below to reset your password:</p>
+                 <a href="${resetLink}">${resetLink}</a>
+                 <p>This link expires in 1 hour.</p>`,
+        });
 
-    res.json({ success: true, message: "Reset link sent to your email." });
-  } catch (error) {
-    console.error("❌ Error sending reset link:", error);
-    res.status(500).json({ success: false, message: "Error sending reset link." });
-  }
-});
-
-// ✅ Employee login
-app.post("/employee/login", async (req, res) => {
-  try {
-    const { username, password, email } = req.body;
-    let employee = await Employee.findOne({ username });
-
-    if (!employee) {
-      const hashed = await bcrypt.hash("emp123", 10);
-      employee = new Employee({ username, email, password: hashed, role: "employee" });
-      await employee.save();
-      console.log("✅ Default employee created with password emp123");
+        res.json({ success: true, message: "Reset link sent to your email" });
+      } else {
+        // Email not configured - show link in console for testing
+        console.log("📧 Password reset link (email not configured):", resetLink);
+        res.json({ success: true, message: "Reset link generated. Check server console." });
+      }
+    } catch (emailErr) {
+      // Email failed but token was created - show in console for testing
+      console.log("📧 Email failed. Use this reset link:", resetLink);
+      console.error("Email error details:", emailErr.message);
+      res.json({ success: true, message: "Reset link generated. Check server console (email sending failed)." });
     }
-
-    const passwordMatches = await bcrypt.compare(password, employee.password);
-    const isDefaultPassword = password === "emp123";
-
-    if (!passwordMatches && !isDefaultPassword)
-      return res.status(400).json({ success: false, message: "Invalid password" });
-
-    const loginRecord = new EmployeeLogin({ username: employee.username, email: employee.email });
-    await loginRecord.save();
-
-    const previousLogins = await EmployeeLogin.find().sort({ loginTime: -1 }).limit(10).lean();
-
-    res.json({
-      success: true,
-      message: "Employee login successful",
-      redirect: "/employee-dashboard",
-      previousLogins,
-    });
-  } catch (error) {
-    console.error("❌ Employee login error:", error);
+  } catch (err) {
+    console.error("Employee forgot password error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-/* --------------------------- EMPLOYEE MANAGEMENT --------------------------- */
+// ✅ Employee Signup Route
+app.post("/employee/signup", async (req, res) => {
+  try {
+    const { fullName, email, password } = req.body;
+if (!isValidPassword(password)) {
+  return res.status(400).json({
+    success: false,
+    message:
+      "Password must be at least 8 characters and include a number and a special character",
+  });
+}
 
-// Add employee
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
+    }
 
-/* --------------------------- DEPARTMENT MANAGEMENT --------------------------- */
+    // Check if email already exists
+    const existing = await Employee.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Email already registered" });
+    }
 
-/* --------------------------- DEPARTMENT MANAGEMENT --------------------------- */
+    // Generate Employee ID
+    const last = await Employee.findOne().sort({ employeeId: -1 });
+    let employeeId = "EMP1001";
+    if (last && last.employeeId) {
+      const lastNumber = parseInt(last.employeeId.replace("EMP", "")) || 1000;
+      employeeId = "EMP" + (lastNumber + 1);
+    }
 
-/* --------------------------- DEPARTMENT MANAGEMENT --------------------------- */
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-// ✅ Get all departments
+    const newEmployee = await Employee.create({
+      employeeId,
+      username: email.split("@")[0], // default username from email
+      name: fullName,
+      email,
+      password: hashedPassword,
+      role: "employee",
+      type: "Permanent", // ✅ Fixed: must be one of ["Internship", "Permanent", "Contract"]
+      status: "Active",
+      joinDate: new Date(),
+    });
+
+    res.status(201).json({ success: true, message: "Signup successful" });
+
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ success: false, message: "Server error: " + err.message });
+  }
+});
+
+// ✅ Apply for Leave
+app.post("/employee/apply-leave", async (req, res) => {
+  try {
+    const { employeeName, leaveType, fromDate, toDate, reason } = req.body;
+    if (!employeeName || !leaveType || !fromDate || !toDate || !reason) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    const newLeave = await Leave.create({
+      employeeName,
+      leaveType,
+      fromDate: new Date(fromDate),
+      toDate: new Date(toDate),
+      reason,
+      status: "pending"
+    });
+
+    res.status(201).json({ success: true, message: "Leave applied successfully", leave: newLeave });
+  } catch (error) {
+    console.error("❌ Leave application error:", error);
+    res.status(500).json({ success: false, message: "Server error during leave application" });
+  }
+});
+
+// ✅ Get Employee Leaves
+app.get("/employee/leaves/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+    const leaves = await Leave.find({ employeeName: username }).sort({ appliedOn: -1 });
+    res.status(200).json({ success: true, leaves });
+  } catch (error) {
+    console.error("❌ Fetch leaves error:", error);
+    res.status(500).json({ success: false, message: "Server error fetching leaves" });
+  }
+});
+
+
+// ✅ Get Team Leaves (All leaves)
+app.get("/employee/leaves/team", async (req, res) => {
+  try {
+    const leaves = await Leave.find().sort({ appliedOn: -1 });
+    res.status(200).json({ success: true, leaves });
+  } catch (error) {
+    console.error("❌ Fetch team leaves error:", error);
+    res.status(500).json({ success: false, message: "Server error fetching team leaves" });
+  }
+});
+
+/* ----------------------- EMPLOYEE PROFILE ----------------------- */
+
+// ✅ Get Employee Profile
+app.get("/employee/profile", async (req, res) => {
+  try {
+    const { username } = req.headers;
+    if (!username) return res.status(400).json({ success: false, message: "Username required" });
+
+    const employee = await Employee.findOne({ username });
+    if (!employee) return res.status(404).json({ success: false, message: "Employee not found" });
+
+    res.json({ success: true, employee });
+  } catch (err) {
+    console.error("Profile error:", err);
+    res.status(500).json({ success: false, message: "Server error fetching profile" });
+  }
+});
+
+// ✅ Update Employee Profile (with Profile Pic)
+app.put("/employee/update-profile", upload.single("profileImage"), async (req, res) => {
+  try {
+    const { username } = req.headers;
+    if (!username) return res.status(400).json({ success: false, message: "Username required" });
+
+    const updateData = { ...req.body };
+    if (req.file) {
+      updateData.profilePic = req.file.filename;
+    }
+
+    const updated = await Employee.findOneAndUpdate({ username }, updateData, { new: true });
+    if (!updated) return res.status(404).json({ success: false, message: "Employee not found" });
+
+    res.json({ success: true, message: "Profile updated successfully", employee: updated });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ success: false, message: "Server error updating profile" });
+  }
+});
+
 app.get("/departments", async (req, res) => {
   try {
     const departments = await Department.find();
@@ -456,6 +675,7 @@ app.get("/api/employees/onsite", async (req, res) => {
   }
 });
 
+
 // ✅ Add a new onsite employee
 app.post("/api/employees/onsite", async (req, res) => {
   try {
@@ -540,7 +760,7 @@ app.get("/api/payroll/overview", async (req, res) => {
   }
 });
 
-/* --------------------------- SERVER START --------------------------- */
+/* -------------------- SERVER -------------------- */
 app.listen(process.env.PORT || 5000, () =>
   console.log(`🚀 Server running on port ${process.env.PORT || 5000}`)
 );

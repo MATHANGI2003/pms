@@ -69,9 +69,17 @@
 }
 
 @keyframes pulse {
-  0% { color: #1a73e8; }
-  50% { color: #0f9d58; }
-  100% { color: #1a73e8; }
+  0% {
+    color: #1a73e8;
+  }
+
+  50% {
+    color: #0f9d58;
+  }
+
+  100% {
+    color: #1a73e8;
+  }
 }
 
 /* Table Section */
@@ -133,8 +141,9 @@
   margin-top: 25px;
   padding: 20px;
   border-radius: 12px;
- 
+
 }
+
 .download-btn {
   background-color: #00b4d8;
   border: none;
@@ -166,6 +175,7 @@
   background-color: #0d4044;
   transform: scale(1.05);
 }
+
 /* Hide Basic, Bonus, Deduction, Net Pay columns */
 .payroll-table th:nth-child(3),
 .payroll-table td:nth-child(3),

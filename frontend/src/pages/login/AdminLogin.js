@@ -4,54 +4,48 @@ import Swal from "sweetalert2";
 import "../../styles/login.css";
 
 const AdminLogin = ({ setRole }) => {
-  const [username, setUsername] = useState("admin");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setMessage("");
 
     try {
       const response = await fetch("http://localhost:5000/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password.trim(),
+        }),
       });
 
       const data = await response.json();
+      console.log("Admin login response:", data);
 
-      if (data.success) {
-        localStorage.setItem("role", "admin");
-        setRole("admin");
-
-        Swal.fire({
-          title: "Success!",
-          text: "Stored in MongoDB successfully 🎉",
-          icon: "success",
-          confirmButtonText: "Continue",
-          confirmButtonColor: "#2563eb",
-          timer: 2000,
-          timerProgressBar: true,
-        }).then(() => {
-          navigate("/admin/dashboard");
-        });
-      } else {
-        Swal.fire({
-          title: "Login Failed",
-          text: data.message,
-          icon: "error",
-          confirmButtonText: "Retry",
-        });
+      if (!response.ok || !data.success) {
+        Swal.fire("Login Failed", data.message || "Invalid credentials", "error");
+        return;
       }
+
+      // ✅ Successful login (works for reset password too)
+      localStorage.setItem("role", "admin");
+      setRole("admin");
+
+      Swal.fire({
+        title: "Success!",
+        text: "Admin logged in successfully 🎉",
+        icon: "success",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+
+      // ✅ ALWAYS go to dashboard after login
+      navigate("/admin/dashboard");
     } catch (error) {
       console.error("Login error:", error);
-      Swal.fire({
-        title: "Server Error",
-        text: "⚠️ Please try again later.",
-        icon: "error",
-      });
+      Swal.fire("Server Error", "Please try again later", "error");
     }
   };
 
@@ -64,19 +58,19 @@ const AdminLogin = ({ setRole }) => {
         <form onSubmit={handleLogin}>
           <input
             className="login-input"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter Username"
+            type="email"
+            placeholder="Enter Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
 
           <input
             className="login-input"
             type="password"
+            placeholder="Enter Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter Password"
             required
           />
 
@@ -85,13 +79,11 @@ const AdminLogin = ({ setRole }) => {
           </button>
         </form>
 
-        {message && <p className="error-message">{message}</p>}
-
         <div className="login-links">
-          <Link to="/admin/forgot-password">Forgot Password?</Link><br></br>
-          <Link to="/login/employee">Login as Employee</Link><br></br>
+          <Link to="/admin/forgot-password">Forgot Password?</Link><br />
+     
           <Link to="/">Back to page</Link>
-          <p>Default user: admin</p>
+          <p>Default email: payrollmanagementsystem123@gmail.com</p>
         </div>
       </div>
     </div>

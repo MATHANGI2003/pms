@@ -1,12 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import Swal from "sweetalert2";
 import "../../styles/login.css";
 
 const EmployeeLogin = ({ setRole }) => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+
+  // ✅ Auto-fill email after signup
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("signupEmail");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      localStorage.removeItem("signupEmail");
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -15,22 +25,42 @@ const EmployeeLogin = ({ setRole }) => {
       const res = await fetch("http://localhost:5000/employee/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
-      console.log("Login response:", data);
 
       if (data.success && data.role === "employee") {
         setRole("employee");
-        alert("✅ Employee Login Successful");
+
+        // ✅ store username for attendance/profile
+        localStorage.setItem("empUsername", data.username);
+        localStorage.setItem("empFullName", data.fullName);
+        localStorage.setItem("username", data.username); // For older components
+
+
+        Swal.fire({
+          icon: "success",
+          title: "Login Successful",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
         navigate("/employee");
       } else {
-        alert("❌ " + (data.message || "Invalid credentials"));
+        Swal.fire({
+          icon: "error",
+          title: "Login Failed",
+          text: data.message || "Invalid credentials",
+        });
       }
     } catch (err) {
-      console.error("Error during login:", err);
-      alert("⚠ Server error, please try again.");
+      console.error("Login error:", err);
+      Swal.fire({
+        icon: "warning",
+        title: "Server Error",
+        text: "Please try again later",
+      });
     }
   };
 
@@ -42,10 +72,10 @@ const EmployeeLogin = ({ setRole }) => {
 
         <form onSubmit={handleLogin}>
           <input
-            type="text"
-            placeholder="Enter your username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
 
@@ -57,6 +87,7 @@ const EmployeeLogin = ({ setRole }) => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+
             <span
               onClick={() => setShowPassword(!showPassword)}
               style={{
@@ -65,10 +96,9 @@ const EmployeeLogin = ({ setRole }) => {
                 top: "50%",
                 transform: "translateY(-50%)",
                 cursor: "pointer",
-                userSelect: "none",
               }}
             >
-              {showPassword ? "🙈" : "👁"}
+              {showPassword ? "🙈" : "👁️"}
             </span>
           </div>
 
@@ -78,15 +108,15 @@ const EmployeeLogin = ({ setRole }) => {
         </form>
 
         <div className="login-links">
-          {/* ✅ Correct route for employee forgot password */}
-          <Link to="/forgot-password/employee" className="forgot-link">
-            Forgot Password?
-          </Link>
+          <Link to="/forgot-password/employee">Forgot Password?</Link>
         </div>
 
+        <p className="signup-link">
+          New user? <Link to="/signup/employee">Create an account</Link>
+        </p>
+
         <p>
-          Are you an admin?{" "}
-          <Link to="/login/admin">Login as Admin</Link>
+          Are you an admin? <Link to="/login/admin">Login as Admin</Link>
         </p>
       </div>
     </div>
