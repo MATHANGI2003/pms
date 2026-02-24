@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
