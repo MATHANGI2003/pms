@@ -761,6 +761,15 @@ app.get("/api/payroll/overview", async (req, res) => {
 });
 
 /* -------------------- SERVER -------------------- */
-app.listen(process.env.PORT || 5000, () =>
-  console.log(`🚀 Server running on port ${process.env.PORT || 5000}`)
-);
+/* -------------------- SERVER -------------------- */
+
+// If running locally → start server
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () =>
+    console.log(`🚀 Server running locally on port ${PORT}`)
+  );
+}
+
+// If running on Vercel → export app
+export default app;
